@@ -1,3 +1,3 @@
 # S
 
-## 欢迎贡献规则
+- [sshky.wjglq.rena](./sshky.wjglq.rena/readme.md)（jmcomic）

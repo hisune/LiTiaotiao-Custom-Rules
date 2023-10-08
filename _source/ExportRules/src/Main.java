@@ -1,5 +1,7 @@
 import java.io.*;
+import java.lang.reflect.Array;
 import java.util.*;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 
@@ -12,7 +14,7 @@ public class Main {
         // String repoPath = "D:\\Documents\\GitHub\\LiTiaotiao-Custom-Rules";
 
 
-        // 创建 HashMap, 存储 app 相关信息（包名, （哈希值, readme.md路径, app 名称, 普通规则, 增强规则））
+        // 创建 HashMap, 存储 app 相关信息（包名, （哈希值, readme.md路径, app 名称, 基础规则, 增强规则））
         HashMap<String, ArrayList<String>> packagesHashMap = new HashMap<String, ArrayList<String>>();
         // 获取规则文件
         ArrayList<String> packageCustomRulesMdFilePathList = getPackageCustomRulesMdFilePathList(repoPath);
@@ -41,8 +43,11 @@ public class Main {
         // 写入 app 列表至外部文件中
         writeAppList(packagesHashMap, repoPath, repoPath + "\\AppList.md");
 
+        // 写入首字母 app 列表至外部文件中
+        writeAppListPrefix(packagesHashMap, repoPath);
+
         // 写入规则至外部文件中
-        // index = 3, 表示普通规则
+        // index = 3, 表示基础规则
         // index = 4, 表示增强规则
         // index = 5, 表示所有规则
 
@@ -63,8 +68,8 @@ public class Main {
             // 开始写入
             bwBasic.write("## Supported App List\r\n");
 
-            String lastLetterPrefix = "";
-            String lastletterComPrefix = "";
+            String lastLetterPrefix = ""; // 上一次循环包名首字母
+            String lastletterComPrefix = ""; // 上一次循环包名com.X中的X
 
             Boolean comPrefix = false;
             for(String packageName: packageNameList) {
@@ -105,6 +110,93 @@ public class Main {
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private static void writeAppListPrefix(HashMap<String, ArrayList<String>> packagesHashMap, String repoPath) {
+        // 初始化文件夹路径列表
+        HashMap<String, String> appPrefixMdFileList = new HashMap<>();
+        char alphabetFirst = 'A';
+        for (int i = 0; i < 26; i++) {
+            char alphabet = (char)(alphabetFirst + i);
+
+            appPrefixMdFileList.put(String.valueOf(alphabet), repoPath + "\\" + alphabet + "\\readme.md");
+            appPrefixMdFileList.put("com." + alphabet, repoPath + "\\C\\com\\com." + alphabet + "\\readme.md");
+        }
+        appPrefixMdFileList.put("cn.", repoPath + "\\C\\cn" + "\\readme.md");
+
+        // 对包名排序
+        ArrayList<String> packageNameList = new ArrayList<>(packagesHashMap.keySet());
+        Collections.sort(packageNameList, String.CASE_INSENSITIVE_ORDER);
+
+
+        for(String prefix :appPrefixMdFileList.keySet()) {
+            try {
+                // 筛选符合首字母规则的包名
+                ArrayList<String> subPackageNameList = new ArrayList<>();
+                for(String packageName: packageNameList) {
+                    if (prefix.startsWith("C")) {
+                        if (packageName.toUpperCase().startsWith("C") && !packageName.toUpperCase().startsWith("COM.") && !packageName.toUpperCase().startsWith("CN.")) {
+                            subPackageNameList.add(packageName);
+                        }
+                    }
+                    else {
+                        if (packageName.toUpperCase().startsWith(prefix.toUpperCase())) {
+                            subPackageNameList.add(packageName);
+                        }
+                    }
+                }
+                FileWriter fwBasic = new FileWriter(new File(appPrefixMdFileList.get(prefix)));
+                BufferedWriter bwBasic = new BufferedWriter(fwBasic);
+
+                // 开始写入
+                bwBasic.write("# " + prefix + "\r\n");
+
+                bwBasic.write("\r\n");
+
+                if (prefix.startsWith("com.")) {
+                    for (String subPackageName: subPackageNameList) {
+                        String relativePath = packagesHashMap.get(subPackageName).get(1).replace(repoPath + "\\C\\com\\" + prefix, ".").replace("\\", "/"); // 相对路径
+                        String appName = packagesHashMap.get(subPackageName).get(2); // App 名称
+                        String line = "- [" + subPackageName + "](" + relativePath + ")（" + appName + "）" + "\r\n";
+                        bwBasic.write(line);
+                    }
+                }
+                else if (prefix.startsWith("cn.")) {
+                    for (String subPackageName: subPackageNameList) {
+                        String relativePath = packagesHashMap.get(subPackageName).get(1).replace(repoPath + "\\C\\cn", ".").replace("\\", "/"); // 相对路径
+                        String appName = packagesHashMap.get(subPackageName).get(2); // App 名称
+                        String line = "- [" + subPackageName + "](" + relativePath + ")（" + appName + "）" + "\r\n";
+                        bwBasic.write(line);
+                    }
+                }
+                else if (prefix.startsWith("C")){
+                    bwBasic.write("- [cn](./cn/readme.md)\r\n");
+                    bwBasic.write("- [com](./com/readme.md)\r\n");
+                    bwBasic.write("\r\n");
+                    bwBasic.write("<br>\r\n");
+                    bwBasic.write("\r\n");
+                    for (String subPackageName: subPackageNameList) {
+                        String relativePath = packagesHashMap.get(subPackageName).get(1).replace(repoPath + "\\" + prefix, ".").replace("\\", "/"); // 相对路径
+                        String appName = packagesHashMap.get(subPackageName).get(2); // App 名称
+                        String line = "- [" + subPackageName + "](" + relativePath + ")（" + appName + "）" + "\r\n";
+                        bwBasic.write(line);
+                    }
+                }
+                else {
+                    for (String subPackageName: subPackageNameList) {
+                        String relativePath = packagesHashMap.get(subPackageName).get(1).replace(repoPath + "\\" + prefix, ".").replace("\\", "/"); // 相对路径
+                        String appName = packagesHashMap.get(subPackageName).get(2); // App 名称
+                        String line = "- [" + subPackageName + "](" + relativePath + ")（" + appName + "）" + "\r\n";
+                        bwBasic.write(line);
+                    }
+                }
+
+                bwBasic.close();
+                fwBasic.close();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
@@ -195,7 +287,7 @@ public class Main {
             BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
             // app 名称
             String appName = "";
-            // 普通规则内容
+            // 基础规则内容
             String basicRulesStr = "";
             // 增强规则内容
             String extendedRulesStr = "";
@@ -204,9 +296,9 @@ public class Main {
 
             // 检测到 app 名称
             Boolean appNameDetected = false;
-            // 检测到普通规则标题
+            // 检测到基础规则标题
             Boolean basicRulesHeaderLineDetected = false;
-            // 检测到普通规则内容开始
+            // 检测到基础规则内容开始
             Boolean basicRulesContentLineStartDetected = false;
 
             // 检测到增强规则标题
@@ -217,12 +309,22 @@ public class Main {
             // 当前读取的行内容
             String line;
 
+            // 匹配并获取 app名称 的正则表达式
+            Pattern pattern = Pattern.compile("#\\s+[A-Za-z0-9_]+(?:\\.[A-Za-z0-9_]+)*\\s*[（(](.+)[)）]");
+
+            String error_line = ""; // 规则语法错误的行
             while ((line = bufferedReader.readLine()) != null) {
                 if (!appNameDetected) {
-                    appName = line.substring(line.indexOf("（") + 1, line.indexOf("）"));
-                    appNameDetected = true;
+                    Matcher matcher = pattern.matcher(line);
+                    if (matcher.find()) {
+                        appName = matcher.group(1);
+                        appNameDetected = true;
+                    }
+                    else {
+                        System.out.println("文件：" + packageCustomRulesMdFilePath + "未获取到 App 名称！");
+                    }
                 }
-                else if (line.equals("## 普通规则")) {
+                else if (line.equals("## 基础规则")) {
                     basicRulesHeaderLineDetected = true;
                 }
                 else if (line.equals("```") && basicRulesHeaderLineDetected) {
@@ -242,9 +344,29 @@ public class Main {
 
                 if (basicRulesContentLineStartDetected) {
                     basicRulesStr += line.strip().replace("\"", "\\\"");
+
+                    // 检测语法错误
+                    String tmp_error_line = "";
+                    if (line.strip().startsWith("{\"id\":") && !line.strip().endsWith(",")) {
+                        tmp_error_line = packageCustomRulesMdFilePath + "  发现规则语法错误：" + line.strip();
+                    }
+                    if (line.strip().startsWith("{\"id\":") && !error_line.isBlank()) {
+                        System.out.println(error_line);
+                    }
+                    error_line = tmp_error_line;
                 }
                 else if (extendedRulesContentLineStartDetected) {
                     extendedRulesStr += line.strip().replace("\"", "\\\"");
+
+                    // 检测语法错误
+                    String tmp_error_line = "";
+                    if (line.strip().startsWith("{\"id\":") && !line.strip().endsWith(",")) {
+                        tmp_error_line = packageCustomRulesMdFilePath + "  发现规则语法错误：" + line.strip();
+                    }
+                    if (line.strip().startsWith("{\"id\":") && !error_line.isBlank()) {
+                        System.out.println(error_line);
+                    }
+                    error_line = tmp_error_line;
                 }
             }
 

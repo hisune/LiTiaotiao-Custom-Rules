@@ -1,4 +1,4 @@
-# com.Y*xxx*
+# com.Y
 
 - [com.yangcong345.android.phone](./com.yangcong345.android.phone/readme.md)（洋葱学园-原洋葱数学）
 - [com.yiche.autoeasy](./com.yiche.autoeasy/readme.md)（易车）
@@ -7,6 +7,9 @@
 - [com.yishouapp.fumi](./com.yishouapp.fumi/readme.md)（一手服装批发）
 - [com.yitong.mbank.psbc](./com.yitong.mbank.psbc/readme.md)（邮储银行）
 - [com.yixia.videoeditor](./com.yixia.videoeditor/readme.md)（秒拍）
+- [com.ylzinfo.chinahrss](./com.ylzinfo.chinahrss/readme.md)（掌上12333）
+- [com.youdao.course](./com.youdao.course/readme.md)（有道精品课）
+- [com.youdao.lingshi.aicard](./com.youdao.lingshi.aicard/readme.md)（有道领世）
 - [com.youku.phone](./com.youku.phone/readme.md)（优酷视频）
 - [com.youqi.fjjf](./com.youqi.fjjf/readme.md)（饭橘）
 - [com.yy.yomi](./com.yy.yomi/readme.md)（Yo语音）
